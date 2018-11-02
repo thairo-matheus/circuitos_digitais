@@ -1,0 +1,12 @@
+library ieee;
+use ieee.std_logic_1164.all;
+
+entity sistema_transito is
+
+end sistema_transito;
+
+architecture rtl of sistema_transito is
+	begin
+	
+	
+	end rtl;
