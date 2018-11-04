@@ -1,0 +1,109 @@
+library ieee;
+use ieee.std_logic_1164.all;
+
+entity sinal_radar is
+	port(clock,Pi,Pf : in std_logic;
+		  tempoVerdeAcai : integer range 20 to 30;
+		  tempoVerdeGuarana : integer range 10 to 20;
+		  tempoAmarelo : integer range 0 to 3;
+		  Ms, Mn : out std_logic;
+		  ledAcai, ledGuarana : out std_logic_vector(2 downto 0));
+end sinal_radar;
+
+architecture rtl of sinal_radar is
+
+	signal clkSinal : integer range 0 to 50000000;
+	signal clkRadar : integer range 0 to 50000000;
+	signal contadorSinal : integer range 0 to 46;
+	signal contadorRadar : integer range 0 to 50000000;
+	signal estadoSinal : std_logic_vector (2 downto 0);
+	signal estadoRadar: std_logic_vector (2 downto 0);	
+	
+	begin
+	
+	process (clock) begin
+		if(clock'event and clock = '1')then
+			if(clkSinal = 50000000)then
+				if(estadoSinal = "000") then
+					contadorSinal <= 0;
+					estadoSinal <= "001";
+				elsif(estadoSinal = "001")then
+					if(contadorSinal = tempoVerdeAcai)then
+						estadoSinal <= "010";
+					else
+						contadorSinal <= contadorSinal + 1;
+					end if;
+				elsif(estadoSinal = "010")then
+					if(contadorSinal = tempoVerdeAcai + tempoAmarelo)then
+						estadoSinal <= "011";
+					else
+						contadorSinal <= contadorSinal + 1;
+					end if;
+				elsif(estadoSinal = "011")then
+					if(contadorSinal = tempoVerdeAcai + tempoAmarelo + tempoVerdeGuarana)then
+						estadoSinal <= "100";
+					else
+						contadorSinal <= contadorSinal + 1;
+					end if;
+				elsif(estadoSinal = "100")then
+					if(contadorSinal = tempoVerdeAcai + tempoVerdeGuarana + tempoAmarelo + tempoAmarelo)then
+						estadoSinal <= "000";
+					else
+						contadorSinal <= contadorSinal + 1;
+					end if;
+				end if;
+			end if;
+			if(clkSinal < 50000000)then
+				clkSinal <= clkSinal + 1;
+			else
+				clkSinal <= 0;
+			end if;
+		end if;
+	end process;
+	
+	ledAcai(0) <= (not(estadoSinal(2)) and estadoSinal(1) and estadoSinal(0)) or (estadoSinal(2) and not(estadoSinal(1)) and not(estadoSinal(0)));
+	ledAcai(1) <= not(estadoSinal(2)) and estadoSinal(1) and not(estadoSinal(0));
+	ledAcai(2) <= not(estadoSinal(2)) and not(estadoSinal(1)) and estadoSinal(0);
+	
+	ledGuarana(0) <= not(estadoSinal(2)) and(estadoSinal(1) xor estadoSinal(0));
+	ledGuarana(1) <= estadoSinal(2) and not(estadoSinal(1)) and not(estadoSinal(0));
+	ledGuarana(2) <= not(estadoSinal(2)) and estadoSinal(1) and estadoSinal(0);
+	process(clock) begin
+		if(clock'event and clock = '1') then
+			if(clkRadar >= 500000) then
+				if (estadoRadar = "000") then
+					contadorRadar <= 0;
+					mn <= '0';
+					ms <= '0';
+					if (Pi = '0') then
+						estadoRadar <= "001";
+					end if;
+				elsif (estadoRadar = "001") then
+					contadorRadar <= contadorRadar + 1;
+					if (Pf = '0') then
+						estadoRadar <= "010";
+					end if;
+				elsif (estadoRadar = "010") then
+					if(contadorRadar < 300)then
+						estadoRadar <= "011";
+					else
+						estadoRadar <= "100";
+					end if;
+				elsif (estadoRadar = "011") then
+					ms <= '1';
+					estadoRadar <= "000";
+				elsif (estadoRadar = "100") then
+					mn <= '1';
+					estadoRadar <= "000";
+				else
+					estadoRadar <= "000";
+				end if;
+			end if;
+			if(clkRadar < 500000)then
+				clkRadar <= clkRadar + 1;
+			else
+				clkRadar <= 0;
+			end if;
+		end if;
+	end process;
+end rtl;
